@@ -1,5 +1,6 @@
 /* hexedit -- Hexadecimal Editor for Binary Files
    Copyright (C) 1998 Pixel (Pascal Rigaux)
+   - auto-refresh mod by mathfigure
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +16,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.*/
 #include "hexedit.h"
-
+#include <time.h>
 
 /*******************************************************************************/
 /* Global variables */
@@ -47,6 +48,28 @@ char * usage = "usage: %s [-s | --sector] [-m | --maximize] [-l<n> | --linelengt
 #endif 
      " [-h | --help] filename\n";
 
+
+int kbhit(void)
+{
+    nodelay(stdscr, TRUE);
+    int c = getch();
+    if (c != ERR) {
+        ungetch(c);
+        c = 1;
+    } else {
+        c = 0;
+    }
+    nodelay(stdscr, FALSE);
+    return c;
+}
+
+void nanowait(long nsec)
+{
+  struct timespec req;
+  req.tv_sec = 0;
+  req.tv_nsec = nsec;
+  nanosleep(&req, 0);
+}
 
 /*******************************************************************************/
 /* main */
@@ -98,9 +121,15 @@ int main(int argc, char **argv)
     }
     openFile();
   }
-  readFile();
-  do display();
-  while (key_to_function(getch()));
+  do {
+    readFile();
+    display();
+    if(kbhit()) {
+      if(!key_to_function(getch())) break;
+    } else {
+      nanowait(1000000000/50);
+    }
+  } while (1);
   quit();
   return 0; /* for no warning */
 }
